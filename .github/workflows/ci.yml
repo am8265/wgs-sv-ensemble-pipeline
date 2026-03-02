@@ -1,0 +1,72 @@
+name: CI — Validate & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── WDL Validation ──────────────────────────────────────────────────────────
+  validate-wdl:
+    name: Validate WDL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Download womtool
+        run: |
+          wget -q https://github.com/broadinstitute/cromwell/releases/download/85/womtool-85.jar \
+            -O womtool.jar
+
+      - name: Validate main workflow
+        run: java -jar womtool.jar validate wdl/main.wdl
+
+      - name: Validate all task WDLs
+        run: |
+          for wdl in wdl/tasks/*.wdl; do
+            echo "Validating $wdl..."
+            java -jar womtool.jar validate "$wdl"
+          done
+
+      - name: Generate workflow inputs template
+        run: |
+          java -jar womtool.jar inputs wdl/main.wdl \
+            > inputs/inputs_template.json
+          echo "Generated inputs template:"
+          cat inputs/inputs_template.json
+
+  # ── Docker Lint ─────────────────────────────────────────────────────────────
+  lint-dockerfiles:
+    name: Lint Dockerfiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run hadolint on all Dockerfiles
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          ignore: DL3008,DL3009
+
+  # ── Input JSON validation ────────────────────────────────────────────────────
+  validate-inputs:
+    name: Validate Input JSONs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON files
+        run: |
+          for json in inputs/*.json tests/*.json; do
+            echo "Validating $json..."
+            python3 -m json.tool "$json" > /dev/null \
+              && echo "  ✓ Valid" \
+              || { echo "  ✗ Invalid JSON: $json"; exit 1; }
+          done

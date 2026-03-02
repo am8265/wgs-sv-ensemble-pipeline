@@ -1,0 +1,31 @@
+{
+  "WGSSVEnsemblePipeline.sample_id":               "NA12878",
+  "WGSSVEnsemblePipeline.bam":                     "gs://YOUR-BUCKET/samples/NA12878.bam",
+  "WGSSVEnsemblePipeline.bai":                     "gs://YOUR-BUCKET/samples/NA12878.bam.bai",
+
+  "WGSSVEnsemblePipeline.reference_fasta":         "gs://YOUR-BUCKET/reference/hg38/hg38.fa",
+  "WGSSVEnsemblePipeline.reference_fai":           "gs://YOUR-BUCKET/reference/hg38/hg38.fa.fai",
+  "WGSSVEnsemblePipeline.reference_dict":          "gs://YOUR-BUCKET/reference/hg38/hg38.dict",
+  "WGSSVEnsemblePipeline.genome_build":            "hg38",
+
+  "WGSSVEnsemblePipeline.cnvnator_reference_dir":  "gs://YOUR-BUCKET/reference/hg38/chromosomes/",
+  "WGSSVEnsemblePipeline.delly_exclude_regions":   "gs://YOUR-BUCKET/reference/hg38/delly_excl.bed",
+
+  "WGSSVEnsemblePipeline.del_dhbfc_threshold":     0.7,
+  "WGSSVEnsemblePipeline.dup_dhffc_threshold":     1.25,
+
+  "WGSSVEnsemblePipeline.survivor_max_dist":       1000,
+  "WGSSVEnsemblePipeline.survivor_min_support":    2,
+  "WGSSVEnsemblePipeline.survivor_min_size":       50,
+
+  "WGSSVEnsemblePipeline.manta_cpu":               8,
+  "WGSSVEnsemblePipeline.manta_mem_gb":            16,
+  "WGSSVEnsemblePipeline.delly_cpu":               4,
+  "WGSSVEnsemblePipeline.delly_mem_gb":            16,
+  "WGSSVEnsemblePipeline.lumpy_cpu":               4,
+  "WGSSVEnsemblePipeline.lumpy_mem_gb":            16,
+  "WGSSVEnsemblePipeline.cnvnator_cpu":            4,
+  "WGSSVEnsemblePipeline.cnvnator_mem_gb":         16,
+  "WGSSVEnsemblePipeline.breakdancer_cpu":         4,
+  "WGSSVEnsemblePipeline.breakdancer_mem_gb":      8
+}
