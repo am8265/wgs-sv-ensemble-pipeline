@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        tool: [manta, delly, lumpy, cnvnator, breakdancer, duphold, survivor, annotsv]
+        tool: [manta, delly, lumpy, cnvnator, breakdancer, duphold, survivor]
 
     steps:
       - uses: actions/checkout@v4
