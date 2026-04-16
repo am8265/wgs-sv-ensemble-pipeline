@@ -6,7 +6,7 @@ LABEL maintainer="Ayan Malakar" \
 ENV DEBIAN_FRONTEND=noninteractive \
     DELLY_VERSION=1.1.6
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         bcftools \
         tabix \

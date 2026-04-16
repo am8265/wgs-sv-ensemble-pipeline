@@ -6,7 +6,7 @@ LABEL maintainer="Ayan Malakar" \
 ENV DEBIAN_FRONTEND=noninteractive \
     DUPHOLD_VERSION=0.2.3
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         bcftools \
         tabix \

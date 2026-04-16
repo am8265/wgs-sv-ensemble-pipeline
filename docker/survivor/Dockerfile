@@ -1,12 +1,11 @@
 FROM ubuntu:22.04
 LABEL maintainer="Ayan Malakar" \
       version="1.0.7" \
-      description="SURVIVOR SV merger + bcftools for ensemble pipeline"
+      description="SURVIVOR SV merger for ensemble pipeline"
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    SURVIVOR_VERSION=1.0.7
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         git \
         build-essential \
@@ -18,12 +17,12 @@ RUN apt-get update && apt-get install -y \
         tabix \
     && rm -rf /var/lib/apt/lists/*
 
-# Build SURVIVOR from source
-RUN git clone https://github.com/fritzsedlazeck/SURVIVOR.git \
-    && cd SURVIVOR/Debug \
-    && make \
-    && cp SURVIVOR /usr/local/bin/ \
-    && cd ../.. && rm -rf SURVIVOR
+RUN git clone https://github.com/fritzsedlazeck/SURVIVOR.git /tmp/SURVIVOR
+
+WORKDIR /tmp/SURVIVOR/Debug
+RUN make && cp SURVIVOR /usr/local/bin/
 
 WORKDIR /workspace
+RUN rm -rf /tmp/SURVIVOR
+
 CMD ["SURVIVOR", "merge"]
