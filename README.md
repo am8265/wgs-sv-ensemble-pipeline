@@ -306,7 +306,7 @@ If you use this pipeline, please cite the underlying tools:
 
 ## Author
 
-**Ayan Malakar** · [github.com/am5153](https://github.com/am8265/)
+**Ayan Malakar** · [github.com/am8265](https://github.com/am8265/)
 
 ---
 
