@@ -1,0 +1,38 @@
+{
+  "WGSSVEnsemblePipeline.sample_id": "NA12878",
+
+  "WGSSVEnsemblePipeline.bam":       "s3://giab/data/NA12878/NIST_NA12878_HG001_HiSeq_300x/RMNISTHS_30xdownsample.bam",
+  "WGSSVEnsemblePipeline.bai":       "s3://giab/data/NA12878/NIST_NA12878_HG001_HiSeq_300x/RMNISTHS_30xdownsample.bam.bai",
+
+  "_comment_4": "hg38 reference from AWS iGenomes public bucket (nf-core hosted, no credentials required)",
+  "WGSSVEnsemblePipeline.reference_fasta": "s3://ngi-igenomes/igenomes/Homo_sapiens/NCBI/GRCh38/Sequence/WholeGenomeFasta/genome.fa",
+  "WGSSVEnsemblePipeline.reference_fai":   "s3://ngi-igenomes/igenomes/Homo_sapiens/NCBI/GRCh38/Sequence/WholeGenomeFasta/genome.fa.fai",
+  "WGSSVEnsemblePipeline.reference_dict":  "s3://ngi-igenomes/igenomes/Homo_sapiens/NCBI/GRCh38/Sequence/WholeGenomeFasta/genome.dict",
+  "WGSSVEnsemblePipeline.genome_build":    "hg38",
+
+  "_comment_5": "CNVnator requires per-chromosome FASTAs — generate locally from reference or provide path",
+  "WGSSVEnsemblePipeline.cnvnator_reference_dir": "/path/to/reference/hg38/chromosomes/",
+  "WGSSVEnsemblePipeline.cnvnator_bin_size":       100,
+
+  "WGSSVEnsemblePipeline.delly_exclude_regions":   "/path/to/reference/hg38/delly_excl.hg38.bed",
+
+  "WGSSVEnsemblePipeline.del_dhffc_threshold":     0.7,
+  "WGSSVEnsemblePipeline.del_dhbfc_threshold":     0.7,
+  "WGSSVEnsemblePipeline.dup_dhbfc_threshold":     1.3,
+  "WGSSVEnsemblePipeline.dup_dhffc_threshold":     1.3,
+
+  "WGSSVEnsemblePipeline.survivor_max_dist":       1000,
+  "WGSSVEnsemblePipeline.survivor_min_support":    2,
+  "WGSSVEnsemblePipeline.survivor_min_size":       50,
+
+  "WGSSVEnsemblePipeline.manta_cpu":               8,
+  "WGSSVEnsemblePipeline.manta_mem_gb":            16,
+  "WGSSVEnsemblePipeline.delly_cpu":               4,
+  "WGSSVEnsemblePipeline.delly_mem_gb":            16,
+  "WGSSVEnsemblePipeline.lumpy_cpu":               4,
+  "WGSSVEnsemblePipeline.lumpy_mem_gb":            16,
+  "WGSSVEnsemblePipeline.cnvnator_cpu":            4,
+  "WGSSVEnsemblePipeline.cnvnator_mem_gb":         16,
+  "WGSSVEnsemblePipeline.breakdancer_cpu":         4,
+  "WGSSVEnsemblePipeline.breakdancer_mem_gb":      8
+}
