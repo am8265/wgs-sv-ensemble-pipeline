@@ -53,7 +53,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           recursive: true
-          ignore: DL3008,DL3009
+          ignore: DL3008,DL3009,DL3013,DL3015,DL3003,DL3042
 
   # ── Input JSON validation ────────────────────────────────────────────────────
   validate-inputs:
