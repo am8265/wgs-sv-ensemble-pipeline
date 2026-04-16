@@ -179,7 +179,7 @@ aws omics create-workflow \
     --parameter-template file://inputs/inputs.json
 ```
 
-### Tier 1 — Run on Terra (Broad Institute)
+### Tier 1 — Run on [Terra] https://terra.bio/
 
 Import this repo via **Workspace → Import Workflow → GitHub**, then submit via the Terra UI or `fiss` CLI.
 
