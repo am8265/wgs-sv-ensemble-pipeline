@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CNVNATOR_VERSION=0.4.1 \
     ROOT_VERSION=6.28.04
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         wget git build-essential cmake \
         libncurses5-dev zlib1g-dev \
         libbz2-dev liblzma-dev \

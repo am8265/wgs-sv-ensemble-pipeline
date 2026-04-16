@@ -6,7 +6,7 @@ LABEL maintainer="Ayan Malakar" \
 ENV DEBIAN_FRONTEND=noninteractive \
     BREAKDANCER_VERSION=1.4.5
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         wget git build-essential cmake \
         python3 python3-pip \
         libncurses5-dev zlib1g-dev \
