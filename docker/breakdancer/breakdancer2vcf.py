@@ -3,7 +3,6 @@
 breakdancer2vcf.py
 Convert BreakDancer.ctx output to VCF format.
 Usage: breakdancer2vcf.py --input <ctx> --output <vcf> --sample <id> --reference <hg38|hg19>
-Author: AM, SB
 """
 
 import argparse

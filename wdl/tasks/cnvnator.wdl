@@ -4,54 +4,61 @@ import "../structs.wdl"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # task: run_cnvnator
-# Read-depth based CNV caller
-# Detects: DEL, DUP (read-depth signal)
-# Bin size 100bp recommended for WGS 30x
+#
+# Read-depth CNV caller
+# Detects: DEL, DUP (read-depth signal only)
+#
+# DESIGN NOTES:
+#   - bin_size=100 is optimal for 30x WGS; use 500 for <15x coverage
+#   - reference_dir must contain per-chromosome FASTAs named chr1.fa etc.
+#   - cnvnator2VCF.pl handles the .txt → .vcf conversion
+#   - ROOT file exposed as output — useful for rerunning with different
+#     bin sizes without re-extracting read depth
 # ─────────────────────────────────────────────────────────────────────────────
 
 task run_cnvnator {
     input {
         SampleInfo    sample
         ReferenceData reference
-        File          reference_dir    # Directory containing per-chrom FASTAs
-        Int           bin_size = 100   # Bin size in bp
-        Int           cpu     = 4
-        Int           mem_gb  = 16
-        String        docker  = "ayan-malakar/cnvnator:0.4.1"
+        File          reference_dir
+        Int           bin_size = 100
+        Int           cpu      = 4
+        Int           mem_gb   = 16
+        String        docker   = "ghcr.io/am5153/sv-pipeline-cnvnator:0.4.1"
     }
 
     command <<<
         set -euo pipefail
 
-        # Extract read mapping from BAM
+        # ── Step 1: Extract read mapping from BAM into ROOT tree ──────────
         cnvnator \
             -root ~{sample.sample_id}.root \
             -tree ~{sample.bam} \
             -chrom $(seq 1 22 | sed 's/^/chr/') chrX chrY
 
-        # Generate read depth histogram
+        # ── Step 2: Generate read depth histogram ─────────────────────────
         cnvnator \
             -root ~{sample.sample_id}.root \
             -his ~{bin_size} \
             -d ~{reference_dir}
 
-        # Calculate statistics
+        # ── Step 3: Calculate mean and variance statistics ─────────────────
         cnvnator \
             -root ~{sample.sample_id}.root \
             -stat ~{bin_size}
 
-        # Partition into segments
+        # ── Step 4: RD signal partitioning ────────────────────────────────
         cnvnator \
             -root ~{sample.sample_id}.root \
             -partition ~{bin_size}
 
-        # Call CNVs
+        # ── Step 5: CNV calling ───────────────────────────────────────────
         cnvnator \
             -root ~{sample.sample_id}.root \
             -call ~{bin_size} \
             > ~{sample.sample_id}.cnvnator.txt
 
-        # Convert to VCF
+        # ── Step 6: Convert to VCF ────────────────────────────────────────
         cnvnator2VCF.pl \
             ~{sample.sample_id}.cnvnator.txt \
             ~{reference.genome_build} \
@@ -59,6 +66,9 @@ task run_cnvnator {
 
         bgzip ~{sample.sample_id}.cnvnator.vcf
         tabix -p vcf ~{sample.sample_id}.cnvnator.vcf.gz
+
+        echo "CNVnator complete: $(bcftools stats ~{sample.sample_id}.cnvnator.vcf.gz \
+            | grep 'number of records' | cut -f4) CNVs called (bin_size=~{bin_size}bp)"
     >>>
 
     output {
@@ -67,6 +77,7 @@ task run_cnvnator {
             vcf:       "~{sample.sample_id}.cnvnator.vcf.gz",
             vcf_index: "~{sample.sample_id}.cnvnator.vcf.gz.tbi"
         }
+        # ROOT file exposed — can re-run calling with different bin sizes
         File root_file = "~{sample.sample_id}.root"
     }
 
@@ -79,7 +90,12 @@ task run_cnvnator {
     }
 
     meta {
-        description: "Run CNVnator read-depth CNV caller"
+        description: "Run CNVnator read-depth CNV caller (5-step pipeline)"
         author:      "Ayan Malakar"
+    }
+
+    parameter_meta {
+        bin_size:      {description: "Bin size in bp. 100 for 30x WGS, 500 for <15x coverage."}
+        reference_dir: {description: "Directory containing per-chromosome FASTAs (chr1.fa, chr2.fa ...)"}
     }
 }

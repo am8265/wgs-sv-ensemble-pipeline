@@ -1,25 +1,29 @@
 version 1.0
 
 # ─────────────────────────────────────────────────────────────────────────────
-# WGS Structural Variant Ensemble Pipeline
-# Author:  Ayan Malakar
+# WGS Structural Variant Ensemble Pipeline — main.wdl
+# adoption from Parliament2 ensemble approach.
+# Author:  Ayan Malakar (github.com/am5153)
 # Version: 1.0.0
 #
-# Five-caller ensemble SV detection pipeline:
-#   1. Manta      — split-read + discordant pair
-#   2. Delly      — paired-end + split-read
-#   3. Lumpy      — probabilistic, split-read + discordant pair
-#   4. CNVnator   — read-depth
-#   5. BreakDancer — discordant read pair
+# PIPELINE STAGES:
+#   1. Run 5 SV callers in parallel (Manta, Delly, Lumpy, CNVnator, BreakDancer)
+#   2. QC: Duphold depth fold-change + B-Allele annotation + filtering
+#   4. SURVIVOR ensemble merge (minSUPP=2 of 5 callers)
+#   5. svtyper re-genotyping on SURVIVOR-merged VCF
 #
-# QC: Duphold depth fold-change annotation + filtering
-# Merge: SURVIVOR ensemble merging (minSUPP=2)
+# SUPP_VEC caller order (preserved throughout):
+#   Position 1 — Manta
+#   Position 2 — Delly
+#   Position 3 — Lumpy
+#   Position 4 — CNVnator
+#   Position 5 — BreakDancer
 #
-# Compatible with:
-#   - AWS HealthOmics
-#   - Terra (Broad Institute)
-#   - Local Cromwell
-#   - HPC (via Cromwell SLURM backend)
+# COMPATIBLE WITH:
+#   - Local Cromwell (configs/cromwell_local.conf)
+#   - AWS HealthOmics (native WDL submission)
+#   - Terra / Broad Institute
+#   - HPC SGE/SLURM (via Cromwell SGE/SLURM backend)
 # ─────────────────────────────────────────────────────────────────────────────
 
 import "structs.wdl"
@@ -34,46 +38,47 @@ import "tasks/survivor.wdl"    as survivor_task
 workflow WGSSVEnsemblePipeline {
 
     input {
-        # ── Sample inputs ──────────────────────────────────────────────────
+        # ── Sample ─────────────────────────────────────────────────────────
         String sample_id
         File   bam
         File   bai
 
-        # ── Reference ─────────────────────────────────────────────────────
+        # ── Reference ──────────────────────────────────────────────────────
         File   reference_fasta
         File   reference_fai
         File   reference_dict
         String genome_build = "hg38"
 
-        # ── CNVnator reference dir (per-chrom FASTAs) ──────────────────────
-        File   cnvnator_reference_dir
+        # ── CNVnator: per-chrom FASTA directory (passed as path string) ───
+        String cnvnator_reference_dir
+        Int    cnvnator_bin_size = 100
 
-        # ── Optional: Delly exclude regions ───────────────────────────────
+        # ── Delly: optional exclude regions ────────────────────────────────
         File?  delly_exclude_regions
 
-        # ── Duphold filter thresholds ─────────────────────────────────────
+        # ── Duphold filter thresholds ──────────────────────────────────────
         Float  del_dhbfc_threshold = 0.7
         Float  dup_dhffc_threshold = 1.25
 
-        # ── SURVIVOR merge parameters ─────────────────────────────────────
+        # ── SURVIVOR merge parameters ──────────────────────────────────────
         Int    survivor_max_dist    = 1000
         Int    survivor_min_support = 2
         Int    survivor_min_size    = 50
 
-        # ── Compute resources ─────────────────────────────────────────────
-        Int    manta_cpu      = 8
-        Int    manta_mem_gb   = 16
-        Int    delly_cpu      = 4
-        Int    delly_mem_gb   = 16
-        Int    lumpy_cpu      = 4
-        Int    lumpy_mem_gb   = 16
-        Int    cnvnator_cpu   = 4
+        # ── Compute ────────────────────────────────────────────────────────
+        Int    manta_cpu       = 8
+        Int    manta_mem_gb    = 16
+        Int    delly_cpu       = 4
+        Int    delly_mem_gb    = 16
+        Int    lumpy_cpu       = 4
+        Int    lumpy_mem_gb    = 16
+        Int    cnvnator_cpu    = 4
         Int    cnvnator_mem_gb = 16
         Int    breakdancer_cpu = 4
         Int    breakdancer_mem_gb = 8
     }
 
-    # ── Build shared structs ───────────────────────────────────────────────────
+    # ── Build shared structs ───────────────────────────────────────────────
     SampleInfo sample = object {
         sample_id: sample_id,
         bam:       bam,
@@ -87,9 +92,10 @@ workflow WGSSVEnsemblePipeline {
         genome_build: genome_build
     }
 
-    # ════════════════════════════════════════════════════════════════════════
-    # STAGE 1: Run all 5 SV callers in parallel
-    # ════════════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════════
+    # STAGE 1: Run all 5 callers in parallel
+    # All tasks start simultaneously — Cromwell handles parallelism
+    # ══════════════════════════════════════════════════════════════════════
 
     call manta_task.run_manta {
         input:
@@ -116,20 +122,12 @@ workflow WGSSVEnsemblePipeline {
             mem_gb    = lumpy_mem_gb
     }
 
-    # svtyper re-genotyping of Lumpy calls
-    call lumpy_task.run_svtyper {
-        input:
-            sample          = sample,
-            lumpy_vcf       = run_lumpy.result.vcf,
-            discordants_bam = run_lumpy.discordants_bam,
-            splitters_bam   = run_lumpy.splitters_bam
-    }
-
     call cnvnator_task.run_cnvnator {
         input:
             sample        = sample,
             reference     = reference,
             reference_dir = cnvnator_reference_dir,
+            bin_size      = cnvnator_bin_size,
             cpu           = cnvnator_cpu,
             mem_gb        = cnvnator_mem_gb
     }
@@ -142,26 +140,30 @@ workflow WGSSVEnsemblePipeline {
             mem_gb    = breakdancer_mem_gb
     }
 
-    # ════════════════════════════════════════════════════════════════════════
-    # STAGE 2: Duphold QC annotation for each caller
-    # ════════════════════════════════════════════════════════════════════════
-
-    # Replace Lumpy raw result with svtyper re-genotyped VCF
-    SVCallerResult lumpy_regenotyped = object {
-        caller:    "lumpy",
-        vcf:       run_svtyper.genotyped_vcf,
-        vcf_index: run_svtyper.genotyped_vcf_tbi
-    }
+    # ══════════════════════════════════════════════════════════════════════
+    # STAGE 2: Build caller results array
+    # IMPORTANT: Order here determines SUPP_VEC bit positions in SURVIVOR multi caller merge
+    #   [0] Manta       → bit 1
+    #   [1] Delly       → bit 2
+    #   [2] Lumpy       → bit 3  (raw — svtyper runs AFTER merge)
+    #   [3] CNVnator    → bit 4
+    #   [4] BreakDancer → bit 5
+    # ══════════════════════════════════════════════════════════════════════
 
     Array[SVCallerResult] caller_results = [
         run_manta.result,
         run_delly.result,
-        lumpy_regenotyped,
+        run_lumpy.result,
         run_cnvnator.result,
         run_breakdancer.result
     ]
 
+    # ══════════════════════════════════════════════════════════════════════
+    # STAGE 3: Duphold annotation + filtering (scatter — parallel per caller)
+    # ══════════════════════════════════════════════════════════════════════
+
     scatter (caller_result in caller_results) {
+
         call duphold_task.run_duphold {
             input:
                 sample        = sample,
@@ -171,15 +173,16 @@ workflow WGSSVEnsemblePipeline {
 
         call duphold_task.filter_duphold {
             input:
-                duphold_result       = run_duphold.result,
-                del_dhbfc_threshold  = del_dhbfc_threshold,
-                dup_dhffc_threshold  = dup_dhffc_threshold
+                duphold_result      = run_duphold.result,
+                del_dhbfc_threshold = del_dhbfc_threshold,
+                dup_dhffc_threshold = dup_dhffc_threshold,
         }
     }
 
-    # ════════════════════════════════════════════════════════════════════════
-    # STAGE 3: SURVIVOR ensemble merge (minSUPP = 2)
-    # ════════════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════════
+    # STAGE 4: SURVIVOR ensemble merge
+    # Inputs are gathered from scatter — Array[File] of filtered VCFs
+    # ══════════════════════════════════════════════════════════════════════
 
     call survivor_task.run_survivor {
         input:
@@ -190,31 +193,53 @@ workflow WGSSVEnsemblePipeline {
             min_size      = survivor_min_size
     }
 
-    # ════════════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════════
+    # STAGE 5: svtyper re-genotyping on SURVIVOR-merged VCF
+    # Rationale: genotype the merged call set using all original BAM evidence
+    # Input: merged multi-caller VCF (breakpoints resolved by SURVIVOR)
+    # Output: genotyped VCF with GT, GQ, SQ per sample
+    # ══════════════════════════════════════════════════════════════════════
+
+    call lumpy_task.run_svtyper {
+        input:
+            sample               = sample,
+            merged_vcf           = run_survivor.merged_vcf,
+            discordants_bam      = run_lumpy.discordants_bam,
+            discordants_bam_bai  = run_lumpy.discordants_bam_bai,
+            splitters_bam        = run_lumpy.splitters_bam,
+            splitters_bam_bai    = run_lumpy.splitters_bam_bai
+    }
+
+    # ══════════════════════════════════════════════════════════════════════
     # OUTPUTS
-    # ════════════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════════
 
     output {
-        # ── Per-caller raw VCFs ───────────────────────────────────────────
+        # ── Per-caller raw VCFs ──────────────────────────────────────────
         File manta_vcf       = run_manta.result.vcf
         File delly_vcf       = run_delly.result.vcf
-        File lumpy_vcf       = run_svtyper.genotyped_vcf
+        File lumpy_vcf       = run_lumpy.result.vcf
         File cnvnator_vcf    = run_cnvnator.result.vcf
         File breakdancer_vcf = run_breakdancer.result.vcf
 
-        # ── Duphold-filtered VCFs ─────────────────────────────────────────
-        Array[File] filtered_vcfs  = filter_duphold.filtered_vcf
-        Array[File] filter_stats   = filter_duphold.filter_stats
+        # ── Duphold-filtered VCFs (one per caller) ───────────────────────
+        Array[File] filtered_vcfs    = filter_duphold.filtered_vcf
+        Array[File] per_caller_stats = filter_duphold.filter_stats
 
-        # ── SURVIVOR merged ensemble VCF ──────────────────────────────────
-        File merged_vcf      = run_survivor.merged_vcf
-        File merged_vcf_tbi  = run_survivor.merged_vcf_tbi
-        File merge_stats     = run_survivor.merge_stats
+        # ── SURVIVOR ensemble merged VCF ─────────────────────────────────
+        File merged_vcf     = run_survivor.merged_vcf
+        File merged_vcf_tbi = run_survivor.merged_vcf_tbi
+        File merge_stats    = run_survivor.merge_stats
+
+        # ── svtyper re-genotyped final VCF ────────────────────────────────
+        File genotyped_vcf     = run_svtyper.genotyped_vcf
+        File genotyped_vcf_tbi = run_svtyper.genotyped_vcf_tbi
+
     }
 
     meta {
         author:      "Ayan Malakar"
-        description: "WGS Structural Variant Ensemble Pipeline — 5-caller + Duphold QC + SURVIVOR merge"
+        description: "WGS SV Ensemble Pipeline — 5-caller + Duphold QC + SURVIVOR merge"
         version:     "1.0.0"
     }
 }

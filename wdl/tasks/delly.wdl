@@ -4,18 +4,25 @@ import "../structs.wdl"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # task: run_delly
+#
 # Paired-end + split-read SV caller
 # Detects: DEL, DUP, INV, TRA, INS
+#
+# DESIGN NOTES:
+#   - exclude_regions is optional (File?) — sensible default is the Delly
+#     curated exclude list for hg38 (removes satellite/centromeric regions)
+#   - BCF → VCF conversion done inline so all callers emit consistent .vcf.gz
+#   - FILTER=PASS prefilter applied here — Delly's own quality filter
 # ─────────────────────────────────────────────────────────────────────────────
 
 task run_delly {
     input {
         SampleInfo    sample
         ReferenceData reference
-        File?         exclude_regions   # Optional mappability exclude BED
+        File?         exclude_regions
         Int           cpu    = 4
         Int           mem_gb = 16
-        String        docker = "ayan-malakar/delly:1.1.6"
+        String        docker = "ghcr.io/am5153/sv-pipeline-delly:1.1.6"
     }
 
     command <<<
@@ -27,13 +34,17 @@ task run_delly {
             --outfile ~{sample.sample_id}.delly.bcf \
             ~{sample.bam}
 
-        # Convert BCF → VCF and index
+        # Keep only PASS calls + convert BCF → VCF
         bcftools view \
+            --apply-filters PASS \
             --output-type z \
             --output ~{sample.sample_id}.delly.vcf.gz \
             ~{sample.sample_id}.delly.bcf
 
         bcftools index --tbi ~{sample.sample_id}.delly.vcf.gz
+
+        echo "Delly complete: $(bcftools stats ~{sample.sample_id}.delly.vcf.gz \
+            | grep 'number of records' | cut -f4) SVs called (PASS only)"
     >>>
 
     output {
@@ -53,7 +64,11 @@ task run_delly {
     }
 
     meta {
-        description: "Run Delly germline SV caller"
+        description: "Run Delly germline SV caller (paired-end + split-read)"
         author:      "Ayan Malakar"
+    }
+
+    parameter_meta {
+        exclude_regions: {description: "Optional BED of regions to exclude (e.g. centromeres, satellites). Recommended: Delly hg38 exclude list."}
     }
 }
