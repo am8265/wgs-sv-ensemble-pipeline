@@ -1,7 +1,7 @@
 # WGS Structural Variant Ensemble Pipeline
 
-[![CI — Validate & Lint](https://github.com/am5153/wgs-sv-ensemble-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/am5153/wgs-sv-ensemble-pipeline/actions/workflows/ci.yml)
-[![Docker — Build & Push](https://github.com/am5153/wgs-sv-ensemble-pipeline/actions/workflows/docker.yml/badge.svg)](https://github.com/am5153/wgs-sv-ensemble-pipeline/actions/workflows/docker.yml)
+[![CI — Validate & Lint](https://github.com/am8265/wgs-sv-ensemble-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/8265/wgs-sv-ensemble-pipeline/actions/workflows/ci.yml)
+[![Docker — Build & Push](https://github.com/am8265/wgs-sv-ensemble-pipeline/actions/workflows/docker.yml/badge.svg)](https://github.com/am8265/wgs-sv-ensemble-pipeline/actions/workflows/docker.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![WDL 1.0](https://img.shields.io/badge/WDL-1.0-blue.svg)](https://openwdl.org/)
 
@@ -153,7 +153,7 @@ The genotype distribution check (`DHGT`) addresses a key limitation: in segmenta
 ### Tier 1 — Run per-sample locally
 
 ```bash
-git clone https://github.com/am5153/wgs-sv-ensemble-pipeline.git
+git clone https://github.com/am8265/wgs-sv-ensemble-pipeline.git
 cd wgs-sv-ensemble-pipeline
 
 # Configure inputs
