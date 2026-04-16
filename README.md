@@ -282,7 +282,7 @@ wgs-sv-ensemble-pipeline/
 | Local | Docker via Cromwell | `configs/cromwell_local.conf` |
 | AWS HealthOmics | Native WDL | See Quick Start above |
 | Terra / Broad | Google Cloud | Import via Terra UI |
-| HPC (SLURM) | Cromwell SLURM backend | Extend `cromwell_local.conf` |
+| HPC (SGE/SLURM) | Cromwell SGE/SLURM backend | Extend `cromwell_local.conf` |
 
 ---
 
